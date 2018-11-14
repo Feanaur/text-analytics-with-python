@@ -38,6 +38,7 @@ print nouns_freq.most_common(10)
 
 
 # REUTERS CORPUS DEMO
+
 from nltk.corpus import reuters
 
 print 'Total Categories:', len(reuters.categories())
@@ -57,9 +58,10 @@ print reuters.sents(fileids=[u'test/16118', u'test/18534'])
 
 
 # WORDNET CORPUS DEMO
+
 from nltk.corpus import wordnet as wn
 
-word = 'hike' # taking hike as our word of interest
+word = 'hike'  # taking hike as our word of interest
 
 # get word synsets
 word_synsets = wn.synsets(word)
@@ -72,9 +74,3 @@ for synset in word_synsets:
     print 'Definition:', synset.definition()
     print 'Examples:', synset.examples()
     print
-    
-
-
-
-
-
