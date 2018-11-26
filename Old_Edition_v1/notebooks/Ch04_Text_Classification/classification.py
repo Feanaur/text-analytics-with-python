@@ -8,16 +8,25 @@ Created on Fri Aug 26 19:38:26 2016
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.cross_validation import train_test_split
 
+
 def get_data():
-    data = fetch_20newsgroups(subset='all',
-                              shuffle=True,
-                              remove=('headers', 'footers', 'quotes'))
+    data = fetch_20newsgroups(
+        subset='all',
+        shuffle=True,
+        remove=('headers', 'footers', 'quotes')
+    )
     return data
-    
+
+
 def prepare_datasets(corpus, labels, test_data_proportion=0.3):
-    train_X, test_X, train_Y, test_Y = train_test_split(corpus, labels, 
-                                                        test_size=0.33, random_state=42)
+    train_X, test_X, train_Y, test_Y = train_test_split(
+        corpus,
+        labels,
+        test_size=0.33,
+        random_state=42
+    )
     return train_X, test_X, train_Y, test_Y
+
 
 def remove_empty_docs(corpus, labels):
     filtered_corpus = []
@@ -28,27 +37,28 @@ def remove_empty_docs(corpus, labels):
             filtered_labels.append(label)
 
     return filtered_corpus, filtered_labels
-    
-    
+
+
 dataset = get_data()
 
-print dataset.target_names
+print(dataset.target_names)
 
 corpus, labels = dataset.data, dataset.target
 corpus, labels = remove_empty_docs(corpus, labels)
 
-print 'Sample document:', corpus[10]
-print 'Class label:',labels[10]
-print 'Actual class label:', dataset.target_names[labels[10]]
+print('Sample document:', corpus[10])
+print('Class label:', labels[10])
+print('Actual class label:', dataset.target_names[labels[10]])
 
 train_corpus, test_corpus, train_labels, test_labels = prepare_datasets(corpus,
                                                                         labels,
                                                                         test_data_proportion=0.3)
-                                                                        
+
+
 from normalization import normalize_corpus
 
 norm_train_corpus = normalize_corpus(train_corpus)
-norm_test_corpus = normalize_corpus(test_corpus)  
+norm_test_corpus = normalize_corpus(test_corpus)
 
 ''.strip()
 
@@ -59,90 +69,98 @@ import nltk
 import gensim
 
 # bag of words features
-bow_vectorizer, bow_train_features = bow_extractor(norm_train_corpus)  
-bow_test_features = bow_vectorizer.transform(norm_test_corpus) 
+bow_vectorizer, bow_train_features = bow_extractor(norm_train_corpus)
+bow_test_features = bow_vectorizer.transform(norm_test_corpus)
 
 # tfidf features
-tfidf_vectorizer, tfidf_train_features = tfidf_extractor(norm_train_corpus)  
-tfidf_test_features = tfidf_vectorizer.transform(norm_test_corpus)    
+tfidf_vectorizer, tfidf_train_features = tfidf_extractor(norm_train_corpus)
+tfidf_test_features = tfidf_vectorizer.transform(norm_test_corpus)
 
 
 # tokenize documents
-tokenized_train = [nltk.word_tokenize(text)
-                   for text in norm_train_corpus]
-tokenized_test = [nltk.word_tokenize(text)
-                   for text in norm_test_corpus]  
-# build word2vec model                   
+tokenized_train = [nltk.word_tokenize(text) for text in norm_train_corpus]
+tokenized_test = [nltk.word_tokenize(text) for text in norm_test_corpus]
+# build word2vec model
 model = gensim.models.Word2Vec(tokenized_train,
                                size=500,
                                window=100,
                                min_count=30,
-                               sample=1e-3)                  
-                   
+                               sample=1e-3)
+
 # averaged word vector features
 avg_wv_train_features = averaged_word_vectorizer(corpus=tokenized_train,
                                                  model=model,
-                                                 num_features=500)                   
+                                                 num_features=500)
 avg_wv_test_features = averaged_word_vectorizer(corpus=tokenized_test,
                                                 model=model,
-                                                num_features=500)                                                 
-                   
+                                                num_features=500)
 
 
 # tfidf weighted averaged word vector features
 vocab = tfidf_vectorizer.vocabulary_
-tfidf_wv_train_features = tfidf_weighted_averaged_word_vectorizer(corpus=tokenized_train, 
-                                                                  tfidf_vectors=tfidf_train_features, 
-                                                                  tfidf_vocabulary=vocab, 
-                                                                  model=model, 
+tfidf_wv_train_features = tfidf_weighted_averaged_word_vectorizer(corpus=tokenized_train,
+                                                                  tfidf_vectors=tfidf_train_features,
+                                                                  tfidf_vocabulary=vocab,
+                                                                  model=model,
                                                                   num_features=500)
-tfidf_wv_test_features = tfidf_weighted_averaged_word_vectorizer(corpus=tokenized_test, 
-                                                                 tfidf_vectors=tfidf_test_features, 
-                                                                 tfidf_vocabulary=vocab, 
-                                                                 model=model, 
+tfidf_wv_test_features = tfidf_weighted_averaged_word_vectorizer(corpus=tokenized_test,
+                                                                 tfidf_vectors=tfidf_test_features,
+                                                                 tfidf_vocabulary=vocab,
+                                                                 model=model,
                                                                  num_features=500)
 
 
 from sklearn import metrics
 import numpy as np
 
-def get_metrics(true_labels, predicted_labels):
-    
-    print 'Accuracy:', np.round(
-                        metrics.accuracy_score(true_labels, 
-                                               predicted_labels),
-                        2)
-    print 'Precision:', np.round(
-                        metrics.precision_score(true_labels, 
-                                               predicted_labels,
-                                               average='weighted'),
-                        2)
-    print 'Recall:', np.round(
-                        metrics.recall_score(true_labels, 
-                                               predicted_labels,
-                                               average='weighted'),
-                        2)
-    print 'F1 Score:', np.round(
-                        metrics.f1_score(true_labels, 
-                                               predicted_labels,
-                                               average='weighted'),
-                        2)
-                        
 
-def train_predict_evaluate_model(classifier, 
-                                 train_features, train_labels, 
+def get_metrics(true_labels, predicted_labels):
+
+    print(
+        'Accuracy:',
+        np.round(
+            metrics.accuracy_score(
+                true_labels,
+                predicted_labels
+            ), 2)
+    )
+    print('Precision:', np.round(
+        metrics.precision_score(
+            true_labels,
+            predicted_labels,
+            average='weighted'
+        ), 2)
+    )
+    print('Recall:', np.round(
+        metrics.recall_score(
+            true_labels,
+            predicted_labels,
+            average='weighted'),
+        2)
+    )
+    print('F1 Score:', np.round(
+        metrics.f1_score(
+            true_labels,
+            predicted_labels,
+            average='weighted'),
+        2)
+    )
+
+
+def train_predict_evaluate_model(classifier,
+                                 train_features, train_labels,
                                  test_features, test_labels):
-    # build model    
+    # build model
     classifier.fit(train_features, train_labels)
     # predict using model
-    predictions = classifier.predict(test_features) 
-    # evaluate model prediction performance   
-    get_metrics(true_labels=test_labels, 
+    predictions = classifier.predict(test_features)
+    # evaluate model prediction performance
+    get_metrics(true_labels=test_labels,
                 predicted_labels=predictions)
-    return predictions    
+    return predictions
 
-                        
-               
+
+
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.linear_model import SGDClassifier
 
@@ -162,8 +180,8 @@ svm_bow_predictions = train_predict_evaluate_model(classifier=svm,
                                            train_labels=train_labels,
                                            test_features=bow_test_features,
                                            test_labels=test_labels)
-                                           
-# Multinomial Naive Bayes with tfidf features                                           
+
+# Multinomial Naive Bayes with tfidf features
 mnb_tfidf_predictions = train_predict_evaluate_model(classifier=mnb,
                                            train_features=tfidf_train_features,
                                            train_labels=train_labels,
@@ -191,18 +209,16 @@ svm_tfidfwv_predictions = train_predict_evaluate_model(classifier=svm,
                                            test_features=tfidf_wv_test_features,
                                            test_labels=test_labels)
 
- 
+
 
 import pandas as pd
 cm = metrics.confusion_matrix(test_labels, svm_tfidf_predictions)
-pd.DataFrame(cm, index=range(0,20), columns=range(0,20))  
+pd.DataFrame(cm, index=range(0,20), columns=range(0,20))
 
 class_names = dataset.target_names
-print class_names[0], '->', class_names[15]
-print class_names[18], '->', class_names[16]  
-print class_names[19], '->', class_names[15]  
-
-
+print(class_names[0], '->', class_names[15])
+print(class_names[18], '->', class_names[16])
+print(class_names[19], '->', class_names[15])
 
 
 import re
@@ -210,11 +226,10 @@ import re
 num = 0
 for document, label, predicted_label in zip(test_corpus, test_labels, svm_tfidf_predictions):
     if label == 0 and predicted_label == 15:
-        print 'Actual Label:', class_names[label]
-        print 'Predicted Label:', class_names[predicted_label]
-        print 'Document:-'
-        print re.sub('\n', ' ', document)
-        print
+        print('Actual Label:', class_names[label])
+        print('Predicted Label:', class_names[predicted_label])
+        print('Document:-')
+        print(re.sub('\n', ' ', document))
         num += 1
         if num == 4:
             break
@@ -223,11 +238,10 @@ for document, label, predicted_label in zip(test_corpus, test_labels, svm_tfidf_
 num = 0
 for document, label, predicted_label in zip(test_corpus, test_labels, svm_tfidf_predictions):
     if label == 18 and predicted_label == 16:
-        print 'Actual Label:', class_names[label]
-        print 'Predicted Label:', class_names[predicted_label]
-        print 'Document:-'
-        print re.sub('\n', ' ', document)
-        print
+        print('Actual Label:', class_names[label])
+        print('Predicted Label:', class_names[predicted_label])
+        print('Document:-')
+        print(re.sub('\n', ' ', document))
         num += 1
         if num == 4:
             break
