@@ -10,11 +10,12 @@ import re
 import nltk
 import string
 from nltk.stem import WordNetLemmatizer
-from pattern.en import tag
-from nltk.corpus import wordnet as wn
+from html.parser import HTMLParser
+import unicodedata
 
 stopword_list = nltk.corpus.stopwords.words('english')
 wnl = WordNetLemmatizer()
+html_parser = HTMLParser()
 
 
 def tokenize_text(text):
@@ -24,25 +25,26 @@ def tokenize_text(text):
 
 
 def expand_contractions(text, contraction_mapping):
-
     contractions_pattern = re.compile(
         '({})'.format('|'.join(contraction_mapping.keys())),
-        flags=re.IGNORECASE | re.DOTALL
-    )
+        flags=re.IGNORECASE | re.DOTALL)
 
     def expand_match(contraction):
         match = contraction.group(0)
         first_char = match[0]
         expanded_contraction = contraction_mapping.get(match)\
-            if contraction_mapping.get(match)\
-            else contraction_mapping.get(match.lower())
-        expanded_contraction = first_char + expanded_contraction[1:]
+                                if contraction_mapping.get(match)\
+                                else contraction_mapping.get(match.lower())
+        expanded_contraction = first_char+expanded_contraction[1:]
         return expanded_contraction
 
     expanded_text = contractions_pattern.sub(expand_match, text)
     expanded_text = re.sub("'", "", expanded_text)
     return expanded_text
 
+
+from pattern.en import tag
+from nltk.corpus import wordnet as wn
 
 # Annotate text tokens with POS tags
 def pos_tag_text(text):
@@ -65,7 +67,6 @@ def pos_tag_text(text):
                          tagged_text]
     return tagged_lower_text
 
-
 # lemmatize text based on POS tags
 def lemmatize_text(text):
 
@@ -80,7 +81,7 @@ def lemmatize_text(text):
 def remove_special_characters(text):
     tokens = tokenize_text(text)
     pattern = re.compile('[{}]'.format(re.escape(string.punctuation)))
-    filtered_tokens = filter(None, [pattern.sub('', token) for token in tokens])
+    filtered_tokens = filter(None, [pattern.sub(' ', token) for token in tokens])
     filtered_text = ' '.join(filtered_tokens)
     return filtered_text
 
@@ -92,16 +93,41 @@ def remove_stopwords(text):
     return filtered_text
 
 
-def normalize_corpus(corpus, tokenize=False):
+def unescape_html(parser, text):
+
+    return parser.unescape(text)
+
+
+def normalize_corpus(corpus, lemmatize=True, tokenize=False):
     normalized_corpus = []
     for text in corpus:
+        text = html_parser.unescape(text)
         text = expand_contractions(text, CONTRACTION_MAP)
-        text = lemmatize_text(text)
+        if lemmatize:
+            text = lemmatize_text(text)
+        else:
+            text = text.lower()
         text = remove_special_characters(text)
         text = remove_stopwords(text)
-        normalized_corpus.append(text)
         if tokenize:
             text = tokenize_text(text)
             normalized_corpus.append(text)
+        else:
+            normalized_corpus.append(text)
 
     return normalized_corpus
+
+
+def parse_document(document):
+    document = re.sub('\n', ' ', document)
+    if isinstance(document, str):
+        document = document
+    elif isinstance(document, unicode):
+        return unicodedata.normalize('NFKD', document).encode('ascii', 'ignore')
+    else:
+        raise ValueError('Document is not string or unicode!')
+    document = document.strip()
+    sentences = nltk.sent_tokenize(document)
+    sentences = [sentence.strip() for sentence in sentences]
+    return sentences
+
