@@ -146,3 +146,4 @@ def parse_document(document):
     sentences = nltk.sent_tokenize(document)
     sentences = [sentence.strip() for sentence in sentences]
     return sentences
+
